@@ -1,26 +1,110 @@
-var express = require("express");
-var bodyParser = require("body-parser");
+'use strict';
+
+//mongoose file must be loaded before all other files in order to provide
+// models to other modules
+var express = require('express'),
+  router = express.Router(),
+  bodyParser = require('body-parser'),
+  swaggerUi = require('swagger-ui-express'),
+  swaggerDocument = require('./swagger.json');
+
+var mongoose = require('mongoose'),
+  Schema = mongoose.Schema;
+
+mongoose.connect('mongodb://rubaco:senha123@ds147902.mlab.com:47902/rubens-assesment-node-api');
+
+var UserSchema = new Schema({
+  email: {
+    type: String, required: true,
+    trim: true, unique: true,
+    match: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/
+  },
+  firstName: {type: String},
+  lastName: {type: String}
+});
+
+mongoose.model('User', UserSchema);
+var User = require('mongoose').model('User');
 
 var app = express();
 
-app.use(bodyParser.urlencoded({ extended:true }));
+//rest API requirements
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 app.use(bodyParser.json());
 
-app.use(function(req, res, next){
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-    res.setHeader("Access-Control-Allow-Headers", "content-type");
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Access-Control-Allow-Credentials", true);
-    next();
-});
+//middleware for create
+var createUser = function (req, res, next) {
+  var user = new User(req.body);
 
-app.listen(9090, function(){
-     console.log("Servidor Web rodando na porta 9090") 
-})
+  user.save(function (err) {
+    if (err) {
+      next(err);
+    } else {
+      res.json(user);
+    }
+  });
+};
 
-app.get("/api", function(req, res){
-        var response = {status: "sucesso"};
-        res.json(response);
-      }
-   );
+var updateUser = function (req, res, next) {
+  User.findByIdAndUpdate(req.body._id, req.body, {new: true}, function (err, user) {
+    if (err) {
+      next(err);
+    } else {
+      res.json(user);
+    }
+  });
+};
+
+var deleteUser = function (req, res, next) {
+  req.user.remove(function (err) {
+    if (err) {
+      next(err);
+    } else {
+      res.json(req.user);
+    }
+  });
+};
+
+var getAllUsers = function (req, res, next) {
+  User.find(function (err, users) {
+    if (err) {
+      next(err);
+    } else {
+      res.json(users);
+    }
+  });
+};
+
+var getOneUser = function (req, res) {
+  res.json(req.user);
+};
+
+var getByIdUser = function (req, res, next, id) {
+  User.findOne({_id: id}, function (err, user) {
+    if (err) {
+      next(err);
+    } else {
+      req.user = user;
+      next();
+    }
+  });
+};
+
+router.route('/users')
+  .post(createUser)
+  .get(getAllUsers);
+
+router.route('/users/:userId')
+  .get(getOneUser)
+  .put(updateUser)
+  .delete(deleteUser);
+
+router.param('userId', getByIdUser);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api/v1', router);
+
+app.listen(9000);
+module.exports = app;
