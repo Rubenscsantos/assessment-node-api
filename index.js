@@ -1,5 +1,7 @@
 'use strict';
 
+const PORT = 9000;
+
 //mongoose file must be loaded before all other files in order to provide
 // models to other modules
 var express = require('express'),
@@ -106,5 +108,5 @@ router.param('userId', getByIdUser);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/api/v1', router);
 
-app.listen(9000);
+app.listen(PORT);
 module.exports = app;
