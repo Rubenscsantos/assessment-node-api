@@ -1,6 +1,6 @@
 'use strict';
 
-const PORT = 9000;
+const PORT = process.env.PORT || 9000;
 
 //mongoose file must be loaded before all other files in order to provide
 // models to other modules
